@@ -9,33 +9,6 @@
   *          DMA transfer.
   *          The communication is done with the Hyperterminal PC application.
   ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT(c) 2015 STMicroelectronics</center></h2>
-  *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  *
-  ******************************************************************************
   */
 
 /* Includes ------------------------------------------------------------------*/
@@ -103,46 +76,20 @@ void ADC2_init(void);
 void ADC3_init(void);
 void UART_sendOneSample(uint8_t nu_sample);
 void StartOfMeasurement(void);
-/* Private functions ---------------------------------------------------------*/
 
-/**
-  * @brief  Main program
-  * @param  None
-  * @retval None
-  */
 int main(void)
 {
-  /* STM32F4xx HAL library initialization:
-       - Configure the Flash prefetch, instruction and Data caches
-       - Systick timer is configured by default as source of time base, but user 
-         can eventually implement his proper time base source (a general purpose 
-         timer for example or other time source), keeping in mind that Time base 
-         duration should be kept 1ms since PPP_TIMEOUT_VALUEs are defined and 
-         handled in milliseconds basis.
-       - Set NVIC Group Priority to 4
-       - Low Level Initialization: global MSP (MCU Support Package) initialization
-     */
+
   HAL_Init();
   
   /* Configure the system clock to 180 MHz */
   SystemClock_Config();
 
-
-
-  /* Configure LED1 and LED3 */
+  /* Configure LED */
   LED_init();
   
   /*##-1- Configure the UART peripheral ######################################*/
-  /* Put the USART peripheral in the Asynchronous mode (UART Mode) */
-  /* UART configured as follows:
-      - Word Length = 8 Bits (7 data bit + 1 parity bit) : 
-	                  BE CAREFUL : Program 7 data bits + 1 parity bit in PC HyperTerminal
-      - Stop Bit    = One Stop bit
-      - Parity      = ODD parity
-      - BaudRate    = 9600 baud
-      - Hardware flow control disabled (RTS and CTS signals) */
   UartHandle.Instance          = USARTx;
-  
   UartHandle.Init.BaudRate     = 256000;
   UartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
   UartHandle.Init.StopBits     = UART_STOPBITS_1;
@@ -162,44 +109,40 @@ int main(void)
 
 
   /*##-2- Start the transmission process #####################################*/
-  /* User start transmission data through "TxBuffer" buffer */
- /* if(HAL_UART_Transmit_DMA(&UartHandle, (uint8_t*)aTxStartMessage, TXSTARTMESSAGESIZE)!= HAL_OK)
-  {
-    Error_Handler();
-  }*/
+
 
   LED_blickXtimes(1,1000);
-  /*##-4- Wait for the end of the transfer ###################################*/
-  /*  Before starting a new communication transfer, you need to check the current
-      state of the peripheral; if it’s busy you need to wait for the end of current
-      transfer before starting a new one.
-      For simplicity reasons, this example is just waiting till the end of the
-      transfer, but application may perform other tasks while transfer operation
-      is ongoing. */
-  /*while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
-  {
-  }*/
+
 
  /* TIM_init();
   ADC1_init();*/
+  aADCxConvertedValues[0] = 0xFFA;
+  aADCxConvertedValues[2] = 123;
 
-
-
-
- /* ##-3- Put UART peripheral in reception process ###########################
-  if (HAL_UART_Receive_DMA(&UartHandle, (uint8_t *)aRxBuffer, RXBUFFERSIZE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
-  {
-  }*/
-
-  StartOfMeasurement();
+  //StartOfMeasurement();
   /* Infinite loop */
   while (1)
   {
+	  if(HAL_UART_Transmit_DMA(&UartHandle, aTxMessageTest, 8)!= HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+
+		  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
+			  {
+			  }
+
+		  if(HAL_UART_Transmit_DMA(&UartHandle, aADCxConvertedValues,ADCCONVERTEDVALUES_BUFFER_SIZE*2)!= HAL_OK)
+		  {
+		    Error_Handler();
+		  }
+
+			  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
+				  {
+				  }
+
+		  LED_blickXtimes(2,500);
+
   }
 }
 
