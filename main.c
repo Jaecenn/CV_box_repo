@@ -20,24 +20,8 @@
 #define RXBUFFERSIZE 4
 #define RXBUFFERSIZEADC 5
 
-/** @addtogroup STM32F4xx_HAL_Examples
-  * @{
-  */
-
-/** @addtogroup UART_Hyperterminal_DMA
-  * @{
-  */
-
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
 /* UART handler declaration */
 UART_HandleTypeDef UartHandle;
-
-/* Buffer used for transmission */
-uint8_t aTxStartMessage[] = "\n\r ****UART-Hyperterminal communication based on DMA****\n\r Enter 10 characters using keyboard :\n\r";
-uint8_t aTxEndMessage[] = "\n\r Example Finished\n\r";
 
 /* Buffer used for reception */
 uint8_t aRxBuffer[RXBUFFERSIZE];
@@ -82,11 +66,7 @@ int main(void)
 {
 
   HAL_Init();
-  
-  /* Configure the system clock to 180 MHz */
   SystemClock_Config();
-
-  /* Configure LED */
   LED_init();
   
   /*##-1- Configure the UART peripheral ######################################*/
@@ -99,22 +79,12 @@ int main(void)
   UartHandle.Init.Mode         = UART_MODE_TX_RX;
   UartHandle.Init.OverSampling = UART_OVERSAMPLING_16;
 
-
-
-
   if (HAL_UART_Init(&UartHandle) != HAL_OK)
   {
     /* Initialization Error */
     Error_Handler();
   }
   
-
- // freqCheck = HAL_RCC_GetPCLK2Freq();
-
-
-  /*##-2- Start the transmission process #####################################*/
-
-
   LED_blickXtimes(1,1000);
 
 
@@ -143,12 +113,19 @@ int main(void)
 	    Error_Handler();
 	  }
 
+	  if(HAL_UART_Receive_DMA(&UartHandle, &aRxBufferADC, RXBUFFERSIZEADC)!= HAL_OK)
+	  	  {
+	  		  Error_Handler();
+	  	  }
+
+
+
   //StartOfMeasurement();
   /* Infinite loop */
   while (1)
   {
 
-	  if (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
+/*	  if (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
 			  {
 		  	  isReady = 0;
 			  }
@@ -157,7 +134,7 @@ int main(void)
 			  isReady = 1;
 		  }
 
-
+*/
 
 
 	/*  if(HAL_UART_Transmit_DMA(&UartHandle, aTxMessageTest, 8)!= HAL_OK)
@@ -344,7 +321,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-	//if (strcmp(aRxBuffer, "5") == 0) sampleRate = 1000;
+	if (strcmp(aRxBuffer, "5555") == 0){
+
+		if(HAL_ADC_Stop_DMA(&AdcHandle)!= HAL_OK)
+			  {
+				  Error_Handler();
+			  }
+
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10,GPIO_PIN_SET);
+	}
 }
 
 /**
@@ -692,11 +677,11 @@ static void Error_Handler(void)
   *         you can add your own implementation.
   * @retval None
   */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+/*void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-  /* Turn LED3 on: Transfer in reception process is correct */
+
 //  BSP_LED_On(LED3);
-}
+}*/
 
 /**
   * @brief  UART error callbacks
