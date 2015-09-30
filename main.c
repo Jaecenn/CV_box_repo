@@ -13,6 +13,9 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include <stdio.h>
+#include <string.h>
+
 #define ADCCONVERTEDVALUES_BUFFER_SIZE ((uint32_t) 5)     /* Size of array containing ADC converted values */
 
 
@@ -31,8 +34,8 @@ uint8_t aTxMessageTest[] = "OK__OK__";
 uint8_t aRxBufferADC[RXBUFFERSIZEADC];
 uint32_t waitIter = 0;
 uint32_t nuSampleDebug = 0;
-uint16_t debugArray[756];
-uint16_t tempBuffer[ADCCONVERTEDVALUES_BUFFER_SIZE];
+//uint16_t debugArray[756];
+uint16_t tempBuffer[ADCCONVERTEDVALUES_BUFFER_SIZE+1];
 
 uint32_t freqCheck;
 uint32_t sampleRate;
@@ -47,6 +50,7 @@ TIM_HandleTypeDef htim1;
 uint16_t uhADCxConvertedValue = 0;
 uint16_t   aADCxConvertedValues[ADCCONVERTEDVALUES_BUFFER_SIZE];
 uint8_t isReady = 0;
+volatile uint8_t isStopped = 0;
 
 //__IO uint16_t   aTESTValues[ADCCONVERTEDVALUES_BUFFER_SIZE] = {513, 1027};
 
@@ -61,6 +65,7 @@ void ADC2_init(void);
 void ADC3_init(void);
 void UART_sendOneSample(uint8_t nu_sample);
 void StartOfMeasurement(void);
+void UART_init(void);
 
 int main(void)
 {
@@ -68,110 +73,67 @@ int main(void)
   HAL_Init();
   SystemClock_Config();
   LED_init();
-  
-  /*##-1- Configure the UART peripheral ######################################*/
-  UartHandle.Instance          = USARTx;
-  UartHandle.Init.BaudRate     = 256000;
-  UartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
-  UartHandle.Init.StopBits     = UART_STOPBITS_1;
-  UartHandle.Init.Parity       = UART_PARITY_NONE;
-  UartHandle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
-  UartHandle.Init.Mode         = UART_MODE_TX_RX;
-  UartHandle.Init.OverSampling = UART_OVERSAMPLING_16;
+  UART_init();
 
-  if (HAL_UART_Init(&UartHandle) != HAL_OK)
-  {
-    /* Initialization Error */
-    Error_Handler();
-  }
   
   LED_blickXtimes(1,1000);
 
+  //sampleRate = 1000000;
 
- /* TIM_init();
-  ADC1_init();*/
- // aADCxConvertedValues[0] = 0xFFA;
- // aADCxConvertedValues[2] = 123;
+  StartOfMeasurement();
 
-  sampleRate = 1000000;
-  onADCs = 11111;
-  numOfADC = 5;
-  TIM_init();
-  ADC1_init();
-
-  if(HAL_TIM_Base_Start_IT(&htim1) != HAL_OK)
-  {
-    /* Counter Enable Error */
-    Error_Handler();
-  }
-
-	  if (HAL_ADC_Start_DMA(&AdcHandle,
-	                        (uint32_t *)aADCxConvertedValues,
-	                        (uint32_t) numOfADC
-	                       ) != HAL_OK)
-	  {
-	    Error_Handler();
-	  }
-
-	  if(HAL_UART_Receive_DMA(&UartHandle, &aRxBufferADC, RXBUFFERSIZEADC)!= HAL_OK)
-	  	  {
-	  		  Error_Handler();
-	  	  }
-
-
-
-  //StartOfMeasurement();
   /* Infinite loop */
   while (1)
   {
+	  while(isStopped!=1){
 
-/*	  if (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
-			  {
-		  	  isReady = 0;
-			  }
-	  else
-		  {
-			  isReady = 1;
-		  }
+	  }
+  	  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
+  		  {
+  		  }
 
-*/
+	  if(HAL_UART_Transmit(&UartHandle, &aTxMessageTest, 8,0xFFFF)!= HAL_OK)
+	  	  			  {
+	  	  				  Error_Handler();
+	  	  			  }
+
+	  	  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
+	  		  {
+	  		  }
 
 
-	/*  if(HAL_UART_Transmit_DMA(&UartHandle, aTxMessageTest, 8)!= HAL_OK)
+	/*if(HAL_UART_Receive_DMA(&UartHandle, &aRxBuffer, RXBUFFERSIZE)!= HAL_OK)
 	  {
-	    Error_Handler();
+		  Error_Handler();
 	  }
 
-		  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
-			  {
-			  }
-
-		  if(HAL_UART_Transmit_DMA(&UartHandle, aADCxConvertedValues,ADCCONVERTEDVALUES_BUFFER_SIZE*2)!= HAL_OK)
-		  {
-		    Error_Handler();
-		  }
-
-			  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
-				  {
-		*/
-	/*  while (HAL_ADC_GetState(&AdcHandle) != HAL_ADC_STATE_EOC_REG)
-			  {
-			  }
-
-	  memcpy(&tempBuffer,&aADCxConvertedValues,numOfADC*2);
-
-	  if(HAL_UART_Transmit_DMA(&UartHandle, tempBuffer,numOfADC*2)!= HAL_OK)
-	  {
-	    Error_Handler();
-	  }	/// TRY LOWER SAMPLE RATE 1 HZ
-
 	  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
-			  {
-			  }
-	  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_10);*/
-		//  LED_blickXtimes(2,500);
+		  {
+		  }*/
+	  isReady = 0;
+	  StartOfMeasurement();
+	  //isReady = 0;
 
   }
+}
+
+void UART_init(void)
+{
+	  /*##-1- Configure the UART peripheral ######################################*/
+	  UartHandle.Instance          = USARTx;
+	  UartHandle.Init.BaudRate     = 256000;
+	  UartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
+	  UartHandle.Init.StopBits     = UART_STOPBITS_1;
+	  UartHandle.Init.Parity       = UART_PARITY_NONE;
+	  UartHandle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
+	  UartHandle.Init.Mode         = UART_MODE_TX_RX;
+	  UartHandle.Init.OverSampling = UART_OVERSAMPLING_16;
+
+	  if (HAL_UART_Init(&UartHandle) != HAL_OK)
+	  {
+	    /* Initialization Error */
+	    Error_Handler();
+	  }
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
@@ -183,6 +145,12 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
 void StartOfMeasurement(void)
 {
 	uint8_t var;
+	isStopped = 0;
+	while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
+		  		  {
+		  		  }
+
+
 	if(HAL_UART_Receive_DMA(&UartHandle, &aRxBufferADC, RXBUFFERSIZEADC)!= HAL_OK)
 	  {
 		  Error_Handler();
@@ -231,27 +199,23 @@ void StartOfMeasurement(void)
 	  {
 		  Error_Handler();
 	  }
-	  //if(HAL_UART_Receive(&UartHandle, &aRxBuffer, 2,0xFFFF)!= HAL_OK)
-
-
-
 
 	  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
 		  {
 		  }
 
-	  while(strcmp(aRxBuffer, "0000") == 0);
+// STRNCMP!!
 
-	  if (strcmp(aRxBuffer, "1000") == 0) sampleRate = 1000;
-	  else if (strcmp(aRxBuffer, "1500") == 0) sampleRate = 1500;
-	  else if (strcmp(aRxBuffer, "1900") == 0) sampleRate = 1900;
-	  else if (strcmp(aRxBuffer, "2000") == 0) sampleRate = 2000;
-	  else if (strcmp(aRxBuffer, "2400") == 0) sampleRate = 2400;
-	  else if (strcmp(aRxBuffer, "3100") == 0) sampleRate = 3100;
-	  else if (strcmp(aRxBuffer, "3500") == 0) sampleRate = 3500;
-	  else if (strcmp(aRxBuffer, "4000") == 0) sampleRate = 4000;
-	  else if (strcmp(aRxBuffer, "4400") == 0) sampleRate = 4400;
-	  else if (strcmp(aRxBuffer, "7000") == 0) sampleRate = 7000;
+	  if (strncmp(aRxBuffer, "1000",4) == 0) sampleRate = 1000;
+	  else if (strncmp(aRxBuffer, "1500",4) == 0) sampleRate = 1500;
+	  else if (strncmp(aRxBuffer, "1900",4) == 0) sampleRate = 1900;
+	  else if (strncmp(aRxBuffer, "2000",4) == 0) sampleRate = 2000;
+	  else if (strncmp(aRxBuffer, "2400",4) == 0) sampleRate = 2400;
+	  else if (strncmp(aRxBuffer, "3100",4) == 0) sampleRate = 3100;
+	  else if (strncmp(aRxBuffer, "3500",4) == 0) sampleRate = 3500;
+	  else if (strncmp(aRxBuffer, "4000",4) == 0) sampleRate = 4000;
+	  else if (strncmp(aRxBuffer, "4400",4) == 0) sampleRate = 4400;
+	  else if (strncmp(aRxBuffer, "7000",4) == 0) sampleRate = 7000;
 	  else{
 	  sampleRate = 0;
 	  }
@@ -267,7 +231,6 @@ void StartOfMeasurement(void)
 		  {
 		  }
 	  }else{
-		 // sampleRate = 1700;
 
 		  while(1)
 			  {
@@ -276,127 +239,110 @@ void StartOfMeasurement(void)
 	  }
 
 	  // DEBUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*********
-	  sampleRate = 1;
+	  //sampleRate = 1000000;
 
 	  TIM_init();
 	  ADC1_init();
 
+	  /*TIM start*/
 	  if(HAL_TIM_Base_Start_IT(&htim1) != HAL_OK)
 	  {
 	    /* Counter Enable Error */
 	    Error_Handler();
 	  }
 
-	  /*##-3- Start the conversion process #######################################*/
-	/*  if(HAL_ADC_Start_DMA(&AdcHandle, (uint32_t*)&uhADCxConvertedValue, 1) != HAL_OK)
-	  {
-	    Error_Handler();
-	  }*/
-
-
-	  /* Start ADC conversion on regular group with transfer by DMA */
-/*	  if (HAL_ADC_Start_DMA(&AdcHandle,
-	                        (uint32_t *)aADCxConvertedValues,
-	                        ADCCONVERTEDVALUES_BUFFER_SIZE
-	                       ) != HAL_OK)
-	  {
-	    Error_Handler();
-	  }*/
 	  nuSampleDebug = 0;
 
-	  	  if (HAL_ADC_Start_DMA(&AdcHandle,
+	  /* ADC start */
+	  if (HAL_ADC_Start_DMA(&AdcHandle,
 	  	                        (uint32_t *)aADCxConvertedValues,
 	  	                        (uint32_t) numOfADC
 	  	                       ) != HAL_OK)
-	  	  {
-	  	    Error_Handler();
-	  	  }
+	  {
+	  	 Error_Handler();
+	  }
+	//  aRxBuffer = "0000";
+	  /* Recieving STOP symbol */
+		if(HAL_UART_Receive_DMA(&UartHandle, &aRxBuffer, RXBUFFERSIZE)!= HAL_OK)
+		  {
+			  Error_Handler();
+		  }
 
 }
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-}
-
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-	if (strcmp(aRxBuffer, "5555") == 0){
+	uint8_t var,l1,l2;
+
+	if (isReady > 1)
+	{
+
+/*	l1 = strlen(aRxBuffer);
+	l2 = strlen("5555");*/
+	var = strncmp(aRxBuffer, "STOP",4);
+	if (var == 0){
 
 		if(HAL_ADC_Stop_DMA(&AdcHandle)!= HAL_OK)
 			  {
 				  Error_Handler();
 			  }
+		if(HAL_ADC_DeInit(&AdcHandle)!= HAL_OK)
+					  {
+						  Error_Handler();
+					  }
+		if(HAL_TIM_Base_Stop_IT(&htim1)!= HAL_OK)
+					  {
+						  Error_Handler();
+					  }
+		if(HAL_TIM_Base_DeInit(&htim1)!= HAL_OK)
+					  {
+								  Error_Handler();
+					  }
+	/*	if (HAL_UART_DeInit(&UartHandle) != HAL_OK)
+			  		  {
+						Error_Handler();
+			  		  }
+		UART_init();*/
+		//HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10,GPIO_PIN_SET);
 
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10,GPIO_PIN_SET);
+		 isReady = 0;
+		 isStopped = 1;
+		//  StartOfMeasurement();
+
+	}}
+	else{
+		/*if(HAL_UART_Receive_DMA(&UartHandle, &aRxBuffer, RXBUFFERSIZE)!= HAL_OK)
+				  {
+					  Error_Handler();
+				  }*/
+		isReady++;
 	}
+
+
+
 }
 
-/**
-  * @brief  Conversion complete callback in non blocking mode
-  * @param  AdcHandle : AdcHandle handle
-  * @note   This example shows a simple way to report end of conversion, and
-  *         you can add your own implementation.
-  * @retval None
-  */
+
+ /* * @brief  Conversion complete callback in non blocking mode*/
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* AdcHandle)
 {
 
 
 	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_10);
 
-
 	memcpy(&tempBuffer,&aADCxConvertedValues,numOfADC*2);
 
-		  if(HAL_UART_Transmit_DMA(&UartHandle, tempBuffer,numOfADC*2)!= HAL_OK)
+
+		  tempBuffer[numOfADC] = 0x0A0D;
+
+
+
+		  if(HAL_UART_Transmit_DMA(&UartHandle, tempBuffer,(numOfADC+1)*2)!= HAL_OK)
 		  {
 		    Error_Handler();
 		  }	/// TRY LOWER SAMPLE RATE 1 HZ
 
-/*	memcpy(&tempBuffer,&aADCxConvertedValues,numOfADC);
-
-	if(HAL_UART_Transmit_DMA(&UartHandle, tempBuffer,numOfADC*2)!= HAL_OK)
-	  {
-	    Error_Handler();
-	  }	/// TRY LOWER SAMPLE RATE 1 HZ
-
-	  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
-			  {
-			  }*/
-
 }
-
-
-void UART_sendOneSample(uint8_t nu_sample)
-{
-	uint8_t high_byte = (uint8_t) (aADCxConvertedValues[nu_sample] >> 8);
-	uint8_t low_byte = (uint8_t) aADCxConvertedValues[nu_sample] & 0xFF;
-
-
-
-	while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
-	  {
-	  }
-
-
-	  if(HAL_UART_Transmit(&UartHandle, &high_byte, 1,0xFFFF)!= HAL_OK)
-	  {
-		  Error_Handler();
-	  }
-
-	  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
-	  {
-	  }
-
-
-	  if(HAL_UART_Transmit(&UartHandle, &low_byte, 1,0xFFFF)!= HAL_OK)
-	  {
-		  Error_Handler();
-	  }
-
-
-}
-
 
 void ADC1_init(void)
 {
@@ -549,16 +495,17 @@ void LED_blickXtimes(uint8_t Xtimes, uint32_t interval)
 
 void TIM_init(void)
 {
-		uint32_t prescale = 450;
-	//	uint32_t samplePeriod = 0;
+		uint32_t prescale = 45;
+	//	sampleRate = 1;
+		uint32_t samplePeriod = 1/(sampleRate * 0.000001);
 	  TIM_ClockConfigTypeDef sClockSourceConfig;
 	  TIM_MasterConfigTypeDef sMasterConfig;
-
+	  samplePeriod = 1000000;
 	  htim1.Instance = TIM2;
 	  htim1.Init.Prescaler = prescale;
 	  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
 	 // htim1.Init.Period = ((SystemCoreClock/2)/(sampleRate*(prescale+1)))-1;
-	  htim1.Init.Period = sampleRate;
+	  htim1.Init.Period = samplePeriod;
 	  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV2;
 	  HAL_TIM_Base_Init(&htim1);
 
