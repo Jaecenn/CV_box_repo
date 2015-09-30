@@ -62,6 +62,7 @@ TIM_HandleTypeDef htim1;
 /* Variable used to get converted value */
 uint16_t uhADCxConvertedValue = 0;
 uint16_t   aADCxConvertedValues[ADCCONVERTEDVALUES_BUFFER_SIZE];
+uint8_t isReady = 0;
 
 //__IO uint16_t   aTESTValues[ADCCONVERTEDVALUES_BUFFER_SIZE] = {513, 1027};
 
@@ -122,10 +123,43 @@ int main(void)
  // aADCxConvertedValues[0] = 0xFFA;
  // aADCxConvertedValues[2] = 123;
 
-  StartOfMeasurement();
+  sampleRate = 1000000;
+  onADCs = 11111;
+  numOfADC = 5;
+  TIM_init();
+  ADC1_init();
+
+  if(HAL_TIM_Base_Start_IT(&htim1) != HAL_OK)
+  {
+    /* Counter Enable Error */
+    Error_Handler();
+  }
+
+	  if (HAL_ADC_Start_DMA(&AdcHandle,
+	                        (uint32_t *)aADCxConvertedValues,
+	                        (uint32_t) numOfADC
+	                       ) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+
+  //StartOfMeasurement();
   /* Infinite loop */
   while (1)
   {
+
+	  if (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
+			  {
+		  	  isReady = 0;
+			  }
+	  else
+		  {
+			  isReady = 1;
+		  }
+
+
+
+
 	/*  if(HAL_UART_Transmit_DMA(&UartHandle, aTxMessageTest, 8)!= HAL_OK)
 	  {
 	    Error_Handler();
@@ -143,7 +177,7 @@ int main(void)
 			  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
 				  {
 		*/
-	  while (HAL_ADC_GetState(&AdcHandle) != HAL_ADC_STATE_EOC_REG)
+	/*  while (HAL_ADC_GetState(&AdcHandle) != HAL_ADC_STATE_EOC_REG)
 			  {
 			  }
 
@@ -157,7 +191,7 @@ int main(void)
 	  while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
 			  {
 			  }
-	  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_10);
+	  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_10);*/
 		//  LED_blickXtimes(2,500);
 
   }
@@ -165,7 +199,7 @@ int main(void)
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-//	UartHandle->State = HAL_UART_STATE_READY;
+	UartHandle->State = HAL_UART_STATE_READY;
 }
 
 
@@ -303,12 +337,15 @@ void StartOfMeasurement(void)
 
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+}
 
-/*
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-
-}*/
+	//if (strcmp(aRxBuffer, "5") == 0) sampleRate = 1000;
+}
 
 /**
   * @brief  Conversion complete callback in non blocking mode
@@ -319,6 +356,18 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
   */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* AdcHandle)
 {
+
+
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_10);
+
+
+	memcpy(&tempBuffer,&aADCxConvertedValues,numOfADC*2);
+
+		  if(HAL_UART_Transmit_DMA(&UartHandle, tempBuffer,numOfADC*2)!= HAL_OK)
+		  {
+		    Error_Handler();
+		  }	/// TRY LOWER SAMPLE RATE 1 HZ
+
 /*	memcpy(&tempBuffer,&aADCxConvertedValues,numOfADC);
 
 	if(HAL_UART_Transmit_DMA(&UartHandle, tempBuffer,numOfADC*2)!= HAL_OK)
@@ -375,9 +424,9 @@ void ADC1_init(void)
 	  AdcHandle.Init.ClockPrescaler        = ADC_CLOCKPRESCALER_PCLK_DIV8;
 	  AdcHandle.Init.Resolution            = ADC_RESOLUTION12b;
 	  AdcHandle.Init.ScanConvMode          = ENABLE;                       /* Sequencer disabled (ADC conversion on only 1 channel: channel set on rank 1) */
-	  AdcHandle.Init.ContinuousConvMode    = ENABLE;                        /* Continuous mode disabled to have only 1 conversion at each conversion trig */
+	  AdcHandle.Init.ContinuousConvMode    = DISABLE;                        /* Continuous mode disabled to have only 1 conversion at each conversion trig */
 	  AdcHandle.Init.DiscontinuousConvMode = DISABLE;                       /* Parameter discarded because sequencer is disabled */
-	  AdcHandle.Init.NbrOfDiscConversion   = 0;
+	  AdcHandle.Init.NbrOfDiscConversion   = numOfADC;
 	  AdcHandle.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_RISING;        /* Conversion start trigged at each external event */
 	  AdcHandle.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T2_TRGO;
 	  AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
@@ -515,15 +564,17 @@ void LED_blickXtimes(uint8_t Xtimes, uint32_t interval)
 
 void TIM_init(void)
 {
-		uint32_t prescale = 5000;
+		uint32_t prescale = 450;
+	//	uint32_t samplePeriod = 0;
 	  TIM_ClockConfigTypeDef sClockSourceConfig;
 	  TIM_MasterConfigTypeDef sMasterConfig;
 
 	  htim1.Instance = TIM2;
 	  htim1.Init.Prescaler = prescale;
 	  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-	  htim1.Init.Period = ((SystemCoreClock/2)/(sampleRate*(prescale+1)))-1;
-	  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	 // htim1.Init.Period = ((SystemCoreClock/2)/(sampleRate*(prescale+1)))-1;
+	  htim1.Init.Period = sampleRate;
+	  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV2;
 	  HAL_TIM_Base_Init(&htim1);
 
 	  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
@@ -532,6 +583,7 @@ void TIM_init(void)
 	  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
 	  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
 	  HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig);
+
 
 }
 /**

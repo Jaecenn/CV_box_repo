@@ -180,6 +180,8 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
   hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
   hdma_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
   hdma_tx.Init.Mode                = DMA_NORMAL;
+ // hdma_tx.Init.Mode                = DMA_CIRCULAR;
+
   hdma_tx.Init.Priority            = DMA_PRIORITY_LOW;
   hdma_tx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
   hdma_tx.Init.FIFOThreshold       = DMA_FIFO_THRESHOLD_FULL;
