@@ -346,6 +346,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* AdcHandle)
 
 void ADC1_init(void)
 {
+	uint8_t rankOfChannel = 1;
 	ADC_ChannelConfTypeDef sConfig;
 
 	/*##-1- Configure the ADC peripheral #######################################*/
@@ -376,11 +377,11 @@ void ADC1_init(void)
 	  {
 	  /*##-2- Configure ADC regular channel ######################################*/
 	  sConfig.Channel      = ADC_CHANNEL_0;
-	  sConfig.Rank         = 1;
+	  sConfig.Rank         = rankOfChannel;
 	  sConfig.SamplingTime = ADC_SAMPLETIME_84CYCLES;
 	  sConfig.Offset       = 0;
 
-
+	  rankOfChannel++;
 	  if (HAL_ADC_ConfigChannel(&AdcHandle, &sConfig) != HAL_OK)
 	  {
 	    /* Channel Configuration Error */
@@ -394,10 +395,11 @@ void ADC1_init(void)
 	  {
 	  /*##-2- Configure ADC regular channel ######################################*/
 	  sConfig.Channel      = ADC_CHANNEL_1;
-	  sConfig.Rank         = 2;
+	  sConfig.Rank         = rankOfChannel;
 	  sConfig.SamplingTime = ADC_SAMPLETIME_84CYCLES;
 	  sConfig.Offset       = 0;
 
+	  rankOfChannel++;
 	  if (HAL_ADC_ConfigChannel(&AdcHandle, &sConfig) != HAL_OK)
 	  {
 	    /* Channel Configuration Error */
@@ -413,10 +415,11 @@ void ADC1_init(void)
 	  {
 	  /*##-2- Configure ADC regular channel ######################################*/
 	  sConfig.Channel      = ADC_CHANNEL_2;
-	  sConfig.Rank         = 3;
+	  sConfig.Rank         = rankOfChannel;
 	  sConfig.SamplingTime = ADC_SAMPLETIME_84CYCLES;
 	  sConfig.Offset       = 0;
 
+	  rankOfChannel++;
 	  if (HAL_ADC_ConfigChannel(&AdcHandle, &sConfig) != HAL_OK)
 	  {
 	    /* Channel Configuration Error */
@@ -430,10 +433,11 @@ void ADC1_init(void)
 	  {
 	  /*##-2- Configure ADC regular channel ######################################*/
 	  sConfig.Channel      = ADC_CHANNEL_3;
-	  sConfig.Rank         = 4;
+	  sConfig.Rank         = rankOfChannel;
 	  sConfig.SamplingTime = ADC_SAMPLETIME_84CYCLES;
 	  sConfig.Offset       = 0;
 
+	  rankOfChannel++;
 	  if (HAL_ADC_ConfigChannel(&AdcHandle, &sConfig) != HAL_OK)
 	  {
 	    /* Channel Configuration Error */
@@ -447,10 +451,11 @@ void ADC1_init(void)
 	  {
 	  /*##-2- Configure ADC regular channel ######################################*/
 	  sConfig.Channel      = ADC_CHANNEL_4;
-	  sConfig.Rank         = 5;
+	  sConfig.Rank         = rankOfChannel;
 	  sConfig.SamplingTime = ADC_SAMPLETIME_84CYCLES;
 	  sConfig.Offset       = 0;
 
+	  rankOfChannel++;
 	  if (HAL_ADC_ConfigChannel(&AdcHandle, &sConfig) != HAL_OK)
 	  {
 	    /* Channel Configuration Error */
@@ -500,7 +505,7 @@ void TIM_init(void)
 		uint32_t samplePeriod = 1/(sampleRate * 0.000001);
 	  TIM_ClockConfigTypeDef sClockSourceConfig;
 	  TIM_MasterConfigTypeDef sMasterConfig;
-	  samplePeriod = 1000000;
+	  //samplePeriod = 1000000;
 	  htim1.Instance = TIM2;
 	  htim1.Init.Prescaler = prescale;
 	  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
