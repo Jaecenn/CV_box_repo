@@ -34,7 +34,7 @@ uint8_t aTxMessageTest[] = "OK__OK__";
 uint8_t aRxBufferADC[RXBUFFERSIZEADC];
 uint32_t waitIter = 0;
 uint32_t nuSampleDebug = 0;
-//uint16_t debugArray[756];
+uint16_t debugArray[756];
 uint16_t tempBuffer[ADCCONVERTEDVALUES_BUFFER_SIZE+1];
 
 uint32_t freqCheck;
@@ -144,6 +144,9 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
 
 void StartOfMeasurement(void)
 {
+
+	HAL_Init();
+
 	uint8_t var;
 	isStopped = 0;
 	while (HAL_UART_GetState(&UartHandle) != HAL_UART_STATE_READY)
@@ -208,14 +211,15 @@ void StartOfMeasurement(void)
 
 	  if (strncmp(aRxBuffer, "1000",4) == 0) sampleRate = 1000;
 	  else if (strncmp(aRxBuffer, "1500",4) == 0) sampleRate = 1500;
-	  else if (strncmp(aRxBuffer, "1900",4) == 0) sampleRate = 1900;
 	  else if (strncmp(aRxBuffer, "2000",4) == 0) sampleRate = 2000;
-	  else if (strncmp(aRxBuffer, "2400",4) == 0) sampleRate = 2400;
-	  else if (strncmp(aRxBuffer, "3100",4) == 0) sampleRate = 3100;
+	  else if (strncmp(aRxBuffer, "2200",4) == 0) sampleRate = 2200;
+	  else if (strncmp(aRxBuffer, "2600",4) == 0) sampleRate = 2600;
+	  else if (strncmp(aRxBuffer, "3300",4) == 0) sampleRate = 3300;
 	  else if (strncmp(aRxBuffer, "3500",4) == 0) sampleRate = 3500;
 	  else if (strncmp(aRxBuffer, "4000",4) == 0) sampleRate = 4000;
 	  else if (strncmp(aRxBuffer, "4400",4) == 0) sampleRate = 4400;
-	  else if (strncmp(aRxBuffer, "7000",4) == 0) sampleRate = 7000;
+	  else if (strncmp(aRxBuffer, "5000",4) == 0) sampleRate = 5000;
+	  else if (strncmp(aRxBuffer, "6500",4) == 0) sampleRate = 6500;
 	  else{
 	  sampleRate = 0;
 	  }
@@ -286,18 +290,18 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 			  {
 				  Error_Handler();
 			  }
-		if(HAL_ADC_DeInit(&AdcHandle)!= HAL_OK)
+/*		if(HAL_ADC_DeInit(&AdcHandle)!= HAL_OK)
 					  {
 						  Error_Handler();
-					  }
+					  }*/
 		if(HAL_TIM_Base_Stop_IT(&htim1)!= HAL_OK)
 					  {
 						  Error_Handler();
 					  }
-		if(HAL_TIM_Base_DeInit(&htim1)!= HAL_OK)
+/*		if(HAL_TIM_Base_DeInit(&htim1)!= HAL_OK)
 					  {
 								  Error_Handler();
-					  }
+					  }*/
 	/*	if (HAL_UART_DeInit(&UartHandle) != HAL_OK)
 			  		  {
 						Error_Handler();
@@ -335,7 +339,15 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* AdcHandle)
 
 		  tempBuffer[numOfADC] = 0x0A0D;
 
-
+		/*  if (nuSampleDebug < 512 && onADCs == 7)
+		  {
+			  debugArray[nuSampleDebug] = tempBuffer[0];
+			  nuSampleDebug++;
+		  }
+		  else if (nuSampleDebug > 511 && onADCs == 7)
+		  {
+			  nuSampleDebug = 600;
+		  }*/
 
 		  if(HAL_UART_Transmit_DMA(&UartHandle, tempBuffer,(numOfADC+1)*2)!= HAL_OK)
 		  {
@@ -355,7 +367,18 @@ void ADC1_init(void)
 
 	  AdcHandle.Init.ClockPrescaler        = ADC_CLOCKPRESCALER_PCLK_DIV8;
 	  AdcHandle.Init.Resolution            = ADC_RESOLUTION12b;
-	  AdcHandle.Init.ScanConvMode          = ENABLE;                       /* Sequencer disabled (ADC conversion on only 1 channel: channel set on rank 1) */
+	  if (numOfADC == 1)
+	  {
+	  AdcHandle.Init.ScanConvMode          = DISABLE;                       /* Sequencer disabled (ADC conversion on only 1 channel: channel set on rank 1) */
+	  AdcHandle.Init.EOCSelection          = ADC_EOC_SINGLE_CONV;
+	  }
+	  else
+	  {
+	  AdcHandle.Init.ScanConvMode          = ENABLE;
+	  AdcHandle.Init.EOCSelection          = ADC_EOC_SEQ_CONV;
+	  }
+
+
 	  AdcHandle.Init.ContinuousConvMode    = DISABLE;                        /* Continuous mode disabled to have only 1 conversion at each conversion trig */
 	  AdcHandle.Init.DiscontinuousConvMode = DISABLE;                       /* Parameter discarded because sequencer is disabled */
 	  AdcHandle.Init.NbrOfDiscConversion   = numOfADC;
@@ -364,7 +387,7 @@ void ADC1_init(void)
 	  AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
 	  AdcHandle.Init.NbrOfConversion       = numOfADC;
 	  AdcHandle.Init.DMAContinuousRequests = ENABLE;
-	  AdcHandle.Init.EOCSelection          = ADC_EOC_SEQ_CONV;
+
 
 	  if (HAL_ADC_Init(&AdcHandle) != HAL_OK)
 	  {
@@ -500,12 +523,16 @@ void LED_blickXtimes(uint8_t Xtimes, uint32_t interval)
 
 void TIM_init(void)
 {
-		uint32_t prescale = 45;
-	//	sampleRate = 1;
-		uint32_t samplePeriod = 1/(sampleRate * 0.000001);
+		//uint32_t prescale = 45;
+		uint32_t prescale = 0;
+		//sampleRate = 2640;
+		sampleRate = sampleRate / 2;
+		//uint32_t samplePeriod = 1/(sampleRate * 0.000001);
+		uint32_t samplePeriod = ((SystemCoreClock/4)/ sampleRate)-1;
 	  TIM_ClockConfigTypeDef sClockSourceConfig;
 	  TIM_MasterConfigTypeDef sMasterConfig;
 	  //samplePeriod = 1000000;
+	 // samplePeriod = 750;
 	  htim1.Instance = TIM2;
 	  htim1.Init.Prescaler = prescale;
 	  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
